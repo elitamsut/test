@@ -5,10 +5,7 @@ This is a simple Flask application that returns "Hello, World!" when accessed. I
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Usage](#usage)
 - [Accessing the Application](#accessing-the-application)
-- [Port Forwarding](#port-forwarding)
-- [License](#license)
 
 ## Prerequisites
 
@@ -28,5 +25,5 @@ To install the Helm chart for this application, follow these steps:
    helm install flask-hello-world .
 
 
-## Get Url
+## Accessing the Application
 http://customer2-app-127-0-0-1.nip.io:8080/
