@@ -1,0 +1,15 @@
+{{- if .Values.ingress.enabled }}
+**IMPORTANT**
+Your application is available at the following URL:
+
+Your application is available at the following URL:
+
+{{- range .Values.ingress.hosts }}
+http://{{ .host }}{{ if .paths }}{{ (index .paths 0) }}{{ else }}/{{ end }}
+{{- end }}
+{{- end }}
+
+You can also access your application using port forwarding with the following command:
+
+```bash
+kubectl port-forward svc/flask-hello-world 8080:8080
