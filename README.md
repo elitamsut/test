@@ -26,3 +26,7 @@ To install the Helm chart for this application, follow these steps:
    git clone https://github.com/elitamsut/test.git
    cd test/flask-hello-world
    helm install flask-hello-world .
+
+
+## Get Url
+http://customer2-app-127-0-0-1.nip.io:8080/
