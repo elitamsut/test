@@ -18,14 +18,14 @@ spec:
     metadata:
       labels:
         app: {{ include "flask-hello-world.name" . }}
-    spec:
-  containers:
-    - name: {{ include "flask-hello-world.name" . }}
-      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"  # This references the tag from values.yaml
-      imagePullPolicy: {{ .Values.image.pullPolicy }}
-      ports:
-        - name: http
-          containerPort: 8080  # Ensure the port is defined as well
+    spec:  # Ensure 'spec:' is properly indented
+      containers:  # Correct indentation for containers
+        - name: {{ include "flask-hello-world.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"  # This references the tag from values.yaml
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080  # Ensure the port is defined as well
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
