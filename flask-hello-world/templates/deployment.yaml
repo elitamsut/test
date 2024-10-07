@@ -9,18 +9,23 @@ spec:
   selector:
     matchLabels:
       app: {{ include "flask-hello-world.name" . }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Allows one additional pod during the update
+      maxUnavailable: 1  # Allows one pod to be unavailable during the update
   template:
     metadata:
       labels:
         app: {{ include "flask-hello-world.name" . }}
     spec:
-      containers:
-        - name: {{ include "flask-hello-world.name" . }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: 8080
+  containers:
+    - name: {{ include "flask-hello-world.name" . }}
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"  # This references the tag from values.yaml
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      ports:
+        - name: http
+          containerPort: 8080  # Ensure the port is defined as well
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
