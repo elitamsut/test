@@ -7,12 +7,9 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: elitamsut/myapp:v1.0.2
-  # This sets the pull policy for images.
+  repository: elitamsut/myapp
   pullPolicy: Always
-  # Overrides the image tag whose default is the chart appVersion.
-  # tag: "v1.0.2"
-
+  tag: "v1.0.2"
 # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
 # This is to override the chart name.
