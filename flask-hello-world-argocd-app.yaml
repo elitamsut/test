@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flask-hello-world
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/elitamsut/test'  # Your GitHub repository URL
+    path: 'flask-hello-world'  # Path to your Helm chart within the repo
+    targetRevision: HEAD  # The branch or commit to track
+    helm:
+      valueFiles:
+        - values.yaml  # Use the values.yaml from your chart
+  destination:
+    server: https://kubernetes.default.svc  # Kubernetes cluster where it will deploy
+    namespace: argocd  # Target namespace for your application
+  syncPolicy:
+    automated:
+      prune: true  # Delete resources that are no longer in the chart
+      selfHeal: true  # Automatically sync if drift is detected
+
