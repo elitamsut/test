@@ -17,7 +17,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 // Clone your Git repository using SSH credentials
-                git credentialsId: 'my-key', url: 'git@github.com:elitamsut/test.git'
+                git credentialsId: 'my-key', url: 'git@github.com:elitamsut/test.git', branch: 'test' // Specify the branch here
             }
         }
 
@@ -59,4 +59,3 @@ pipeline {
         }
     }
 }
-
