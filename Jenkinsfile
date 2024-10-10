@@ -1,58 +1,54 @@
 pipeline {
-    agent {
-        dockerfile true // Use the default Dockerfile in the root directory
+    agent any
+
+    environment {
+        DOCKER_IMAGE = 'elitamsut/myapp' // Your Docker image name
+        DOCKER_TAG = 'v1.0.9' // Specify your Docker image tag
     }
+
     stages {
         stage('Clone Repository') {
             steps {
-                git(branch: 'test', credentialsId: 'my-key', url: 'git@github.com:elitamsut/test.git')
-            }
-        }
-
-        stage('List Workspace Files') {
-            steps {
-                script {
-                    sh 'ls -al' // List files in the current directory for debugging
-                }
-            }
-        }
-
-        stage('Verify Docker Installation') {
-            steps {
-                script {
-                    sh 'docker --version' // Verify Docker installation
-                }
+                // Clone your Git repository
+                git credentialsId: 'my-key', url: 'git@github.com:elitamsut/test.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    app = docker.build("elitamsut/myapp:${env.BUILD_ID}", ".") // Build the Docker image
+                    // Build the Docker image
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "--pull") // Pull latest base image
                 }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                // Run your tests (if you have any)
+                // Modify this step based on your testing framework
+                sh 'docker run --rm ${DOCKER_IMAGE}:${DOCKER_TAG} python -m unittest discover -s tests'
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        app.push() // Push the Docker image to Docker Hub
-                    }
+                // Log in to Docker Hub
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
                 }
+                // Push the Docker image to Docker Hub
+                sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
             }
         }
     }
-    environment {
-        PATH = "/usr/local/bin:${env.PATH}" // Set Docker binary path
-    }
+
     post {
         success {
             echo 'Pipeline completed successfully!'
         }
-
         failure {
-            echo 'Pipeline failed. Please check the logs.'
+            echo 'Pipeline failed.'
         }
     }
 }
