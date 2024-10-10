@@ -3,8 +3,10 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                // Clone the GitHub repository using SSH
-                git 'git@github.com:elitamsut/test.git'
+                // Clone the GitHub repository using SSH with credentials
+                git branch: 'test', 
+                    credentialsId: 'github-ssh-key', 
+                    url: 'git@github.com:elitamsut/test.git'
             }
         }
 
@@ -20,8 +22,8 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    // Push the built Docker image to Docker Hub
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials-id') {
+                    // Push the built Docker image to Docker Hub using credentials
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
                         app.push()
                     }
                 }
