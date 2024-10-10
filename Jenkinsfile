@@ -14,7 +14,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image with a unique tag based on the build ID
-                    def app = docker.build("elitamsut/myapp:${env.BUILD_ID}", ".")
+                    app = docker.build("elitamsut/myapp:${env.BUILD_ID}", ".")
                 }
             }
         }
