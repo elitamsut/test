@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'elitamsut/myapp' // Your Docker image name
-        DOCKER_TAG = 'v1.0.9' // Specify your Docker image tag
+        DOCKER_TAG = 'v1.0.10' // Specify your Docker image tag
     }
 
     stages {
