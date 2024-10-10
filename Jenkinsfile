@@ -7,6 +7,13 @@ pipeline {
     }
 
     stages {
+        stage('Clean Workspace') {
+            steps {
+                // Clean the workspace before starting the build
+                cleanWs()
+            }
+        }
+
         stage('Clone Repository') {
             steps {
                 // Clone your Git repository using SSH credentials
