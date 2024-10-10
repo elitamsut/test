@@ -45,10 +45,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'CI Pipeline completed successfully! The Docker image has been pushed to Docker Hub.'
         }
         failure {
-            echo 'Pipeline failed.'
+            echo 'CI Pipeline failed.'
         }
     }
 }
