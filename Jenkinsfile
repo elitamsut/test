@@ -3,20 +3,6 @@ pipeline {
         dockerfile true // Use the default Dockerfile in the root directory
     }
     stages {
-        stage('Setup SSH') {
-            steps {
-                script {
-                    // Create .ssh directory if it doesn't exist
-                    sh '''
-                        mkdir -p ~/.ssh
-                        echo "$SSH_KEY" > ~/.ssh/id_rsa
-                        chmod 600 ~/.ssh/id_rsa
-                        ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-                    '''
-                }
-            }
-        }
-
         stage('Clone Repository') {
             steps {
                 git(branch: 'test', credentialsId: 'my-key', url: 'git@github.com:elitamsut/test.git')
@@ -59,7 +45,6 @@ pipeline {
     }
     environment {
         PATH = "/usr/local/bin:${env.PATH}" // Set Docker binary path
-        SSH_KEY = credentials('my-key') // Assuming 'my-key' is the ID of the SSH key in Jenkins
     }
     post {
         success {
