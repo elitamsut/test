@@ -25,7 +25,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image
-                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "--pull") // Pull latest base image
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "--pull .") // Pull latest base image, '.' specifies the current directory as context
                 }
             }
         }
@@ -34,7 +34,7 @@ pipeline {
             steps {
                 // Run your tests (if you have any)
                 // Modify this step based on your testing framework
-                sh "docker run --rm ${DOCKER_IMAGE}:${DOCKER_TAG} python -m unittest discover -s tests" // Make sure the 'tests' directory exists
+                sh "docker run --rm ${DOCKER_IMAGE}:${DOCKER_TAG} python -m unittest discover -s tests"
             }
         }
 
