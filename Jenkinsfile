@@ -5,7 +5,7 @@ pipeline {
             steps {
                 // Clone the GitHub repository using SSH with credentials
                 git branch: 'test', 
-                    credentialsId: 'github-ssh-key', 
+                    credentialsId: 'my-key', 
                     url: 'git@github.com:elitamsut/test.git'
             }
         }
