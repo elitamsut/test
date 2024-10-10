@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                // Clone your Git repository
+                // Clone your Git repository using SSH credentials
                 git credentialsId: 'my-key', url: 'git@github.com:elitamsut/test.git'
             }
         }
@@ -27,7 +27,7 @@ pipeline {
             steps {
                 // Run your tests (if you have any)
                 // Modify this step based on your testing framework
-                sh 'docker run --rm ${DOCKER_IMAGE}:${DOCKER_TAG} python -m unittest discover -s tests'
+                sh "docker run --rm ${DOCKER_IMAGE}:${DOCKER_TAG} python -m unittest discover -s tests"
             }
         }
 
