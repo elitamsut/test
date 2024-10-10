@@ -34,7 +34,7 @@ pipeline {
             steps {
                 // Run your tests (if you have any)
                 // Modify this step based on your testing framework
-                sh "docker run --rm ${DOCKER_IMAGE}:${DOCKER_TAG} python -m unittest discover -s tests"
+                sh "docker run --rm ${DOCKER_IMAGE}:${DOCKER_TAG} python -m unittest discover -s tests" // Make sure the 'tests' directory exists
             }
         }
 
@@ -59,3 +59,4 @@ pipeline {
         }
     }
 }
+
