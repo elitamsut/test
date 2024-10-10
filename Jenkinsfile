@@ -1,56 +1,44 @@
 pipeline {
-    agent {
-        dockerfile {
-            filename 'Dockerfile'
-        }
+    agent any
+    environment {
+        PATH = "/usr/local/bin:${env.PATH}" // Set Docker binary path
     }
-
     stages {
         stage('Clone Repository') {
             steps {
-                // Clone the GitHub repository using SSH with credentials
-                git branch: 'test',
-                    credentialsId: 'my-key',
-                    url: 'git@github.com:elitamsut/test.git'
+                git(branch: 'test', credentialsId: 'my-key', url: 'git@github.com:elitamsut/test.git')
             }
         }
-
         stage('Verify Docker Installation') {
             steps {
                 script {
-                    // Verify Docker installation
-                    sh 'docker --version'
+                    sh 'docker --version' // Verify Docker installation
                 }
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image with a unique tag based on the build ID
-                    app = docker.build("elitamsut/myapp:${env.BUILD_ID}", ".")
+                    app = docker.build("elitamsut/myapp:${env.BUILD_ID}", ".") // Build the Docker image
                 }
             }
         }
-
         stage('Push Docker Image') {
             steps {
                 script {
-                    // Push the built Docker image to Docker Hub using credentials
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        app.push()
+                        app.push() // Push the Docker image to Docker Hub
                     }
                 }
             }
         }
     }
-
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Pipeline completed successfully!' // Success message
         }
         failure {
-            echo 'Pipeline failed. Please check the logs.'
+            echo 'Pipeline failed. Please check the logs.' // Failure message
         }
     }
 }
