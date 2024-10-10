@@ -1,17 +1,18 @@
-# Use the official Python image
+# Example Dockerfile
 FROM python:3.9-slim
 
 # Set the working directory
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Copy the requirements file
+COPY requirements.txt .
 
-# Install the required packages (Flask)
-RUN pip install --no-cache-dir flask
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port 8080 to the outside world
-EXPOSE 8080
+# Copy the rest of your application code
+COPY . .
 
-# Run app.py when the container launches
+# Command to run your application
 CMD ["python", "app.py"]
+
