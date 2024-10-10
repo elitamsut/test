@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                // Clone the GitHub repository using SSH with credentials
+                // Clone the GitHub repository using SSH with specified credentials and branch
                 git branch: 'test', 
                     credentialsId: 'my-key', 
                     url: 'git@github.com:elitamsut/test.git'
