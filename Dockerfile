@@ -1,21 +1,17 @@
-# Use the official Jenkins base image
-FROM jenkins/jenkins:lts
+# Use the official Python image
+FROM python:3.9-slim
 
-# Switch to the root user
-USER root
+# Set the working directory
+WORKDIR /app
 
-# Update package lists and install Git and Docker
-RUN apt-get update && \
-    apt-get install -y git docker.io && \
-    apt-get clean
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-# Copy SSH key and set permissions
-COPY /path/to/your/id_rsa /root/.ssh/id_rsa
-RUN chmod 600 /root/.ssh/id_rsa
+# Install the required packages (Flask)
+RUN pip install --no-cache-dir flask
 
-# Add GitHub to known hosts
-RUN ssh-keyscan -H github.com >> /root/.ssh/known_hosts
+# Expose port 8080 to the outside world
+EXPOSE 8080
 
-# Switch back to the Jenkins user
-USER jenkins
-
+# Run app.py when the container launches
+CMD ["python", "app.py"]
