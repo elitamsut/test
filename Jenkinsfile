@@ -2,6 +2,7 @@ pipeline {
     agent {
         dockerfile true // Use the default Dockerfile in the root directory
     }
+
     stages {
         stage('Clone Repository') {
             steps {
@@ -43,9 +44,11 @@ pipeline {
             }
         }
     }
+
     environment {
         PATH = "/usr/local/bin:${env.PATH}" // Set Docker binary path
     }
+
     post {
         success {
             echo 'Pipeline completed successfully!'
@@ -56,3 +59,4 @@ pipeline {
         }
     }
 }
+
