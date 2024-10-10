@@ -6,6 +6,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
+                // Cloning the repository using the private RSA key for authentication
                 git(branch: 'test', credentialsId: 'my-key', url: 'git@github.com:elitamsut/test.git')
             }
         }
@@ -26,6 +27,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
+                    // Push the Docker image to Docker Hub using the specified credentials
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
                         app.push() // Push the Docker image to Docker Hub
                     }
