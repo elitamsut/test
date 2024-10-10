@@ -1,10 +1,6 @@
-// Testing Jenkins build trigger
-
 pipeline {
     agent {
-        dockerfile {
-            filename 'ww' // Make sure this file exists in the specified location
-        }
+        dockerfile true // Use the default Dockerfile in the root directory
     }
     stages {
         stage('Clone Repository') {
