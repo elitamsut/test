@@ -2,28 +2,38 @@ name: Docker Image CI
 
 on:
   push:
-    branches: ["test"]
+    branches: [ "main", "test" ]
   pull_request:
-    branches: ["test"]
+    branches: [ "main", "test" ]
+
+env:
+  IMAGE_CONFIG: 'image-config.yaml'
+  DOCKER_IMAGE: 'elitamsut/myapp'  # Your custom Docker image name
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+          ssh-key: ${{ secrets.GITHUB_SSH_KEY }}
+          ref: 'test'
 
-      - name: Set up Docker Buildx
+      # Set up Docker Buildx
+      - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
-      - name: Build the Docker image
-        id: build
+      # Build Docker Image
+      - name: Build Docker Image
         run: |
-          IMAGE_TAG="v1.0.$(date +%s)"  # Create a version tag based on the timestamp
-          docker build . --file Dockerfile --tag elitamsut/myapp:${IMAGE_TAG}
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV  # Store the image tag in an environment variable
+          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)  # Extract the tag from image-config.yaml
+          echo "Building Docker image with tag: ${TAG}"
+          docker build --pull -t ${{ env.DOCKER_IMAGE }}:${TAG} .
 
+      # Log in to the elitamsut registry
       - name: Log in to elitamsut Registry
         uses: docker/login-action@v2
         with:
@@ -31,11 +41,14 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           registry: 'elitamsut'  # Specify your registry here
 
-      - name: Push Docker Image to elitamsut Registry
+      # Push Docker Image
+      - name: Push Docker Image
         run: |
-          echo "Pushing Docker image: elitamsut/myapp:${{ env.IMAGE_TAG }}"
-          docker push elitamsut/myapp:${{ env.IMAGE_TAG }}  # Use the image tag from the environment variable
+          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)  # Extract the tag again for pushing
+          echo "Pushing Docker image: ${{ env.DOCKER_IMAGE }}:${TAG}"
+          docker push ${{ env.DOCKER_IMAGE }}:${TAG}
 
+      # Notify Success
       - name: Notify Success
         run: echo "Docker image creation and push completed successfully!"
 
