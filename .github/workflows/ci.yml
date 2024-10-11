@@ -12,6 +12,7 @@ on:
 
 env:
   IMAGE_CONFIG: 'image-config.yaml'  # Path to your image configuration file
+  VALUES_FILE: 'flask-hello-world/values.yaml'  # Path to your Helm values file
   DOCKER_IMAGE: 'elitamsut/myapp'     # Your custom Docker image name
 
 jobs:
@@ -30,11 +31,18 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
+      # Get the image tag from image-config.yaml and update values.yaml
+      - name: Update Image Tag in values.yaml
+        run: |
+          IMAGE_TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)  # Get the tag from image-config.yaml
+          echo "Updating image tag in values.yaml to: ${IMAGE_TAG}"
+          yq eval -i '.image.tag = strenv(IMAGE_TAG)' $VALUES_FILE  # Update the image tag in values.yaml
+
       # Build Docker Image
       - name: Build Docker Image
         id: build
         run: |
-          IMAGE_TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)  # Get the tag from image-config.yaml
+          IMAGE_TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)  # Get the tag again for building the image
           echo "Building Docker image with tag: ${IMAGE_TAG}"
           docker build --pull -t ${{ env.DOCKER_IMAGE }}:${IMAGE_TAG} .
           echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV  # Store the image tag in an environment variable
