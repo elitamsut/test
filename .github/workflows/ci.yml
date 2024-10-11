@@ -12,6 +12,7 @@ on:
 
 env:
   IMAGE_CONFIG: 'image-config.yaml'
+  DOCKER_IMAGE: 'elitamsut/myapp'  # Define your Docker image name here
 
 jobs:
   build:
@@ -32,10 +33,9 @@ jobs:
       # Build Docker Image
       - name: Build Docker Image
         run: |
-          # Read the tag from the config file
           TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)
           docker build --pull -t ${{ env.DOCKER_IMAGE }}:${TAG} .
-
+        
       # Run Tests
       - name: Run Tests
         run: |
