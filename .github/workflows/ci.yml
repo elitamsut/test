@@ -11,8 +11,7 @@ on:
       - test
 
 env:
-  DOCKER_IMAGE: 'elitamsut/myapp'
-  DOCKER_TAG: 'v1.0.10'
+  IMAGE_CONFIG: 'image-config.yaml'
 
 jobs:
   build:
@@ -23,7 +22,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          ssh-key: ${{ secrets.GITHUB_SSH_KEY }} # Ensure this secret exists
+          ssh-key: ${{ secrets.GITHUB_SSH_KEY }}
           ref: 'test'
 
       # Set up Docker Buildx
@@ -33,12 +32,15 @@ jobs:
       # Build Docker Image
       - name: Build Docker Image
         run: |
-          docker build --pull -t ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} .
+          # Read the tag from the config file
+          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)
+          docker build --pull -t ${{ env.DOCKER_IMAGE }}:${TAG} .
 
       # Run Tests
       - name: Run Tests
         run: |
-          docker run --rm ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} python -m unittest discover -s tests  # Adjust the path if necessary
+          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)
+          docker run --rm ${{ env.DOCKER_IMAGE }}:${TAG} python -m unittest discover -s tests
 
       # Log in to Docker Hub
       - name: Log in to Docker Hub
@@ -50,7 +52,19 @@ jobs:
       # Push Docker Image
       - name: Push Docker Image
         run: |
-          docker push ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)
+          docker push ${{ env.DOCKER_IMAGE }}:${TAG}
+
+      # Update Helm values with new image tag
+      - name: Update Helm values
+        run: |
+          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)
+          sed -i "s/tag: .*/tag: '${TAG}'/" path/to/your/values.yaml
+
+      # Deploy to Kubernetes
+      - name: Deploy to Kubernetes
+        run: |
+          helm upgrade --install myapp path/to/your/chart --values path/to/your/values.yaml
 
       # Notify Success
       - name: Notify Success

@@ -1,0 +1,4 @@
+image:
+  repository: elitamsut/myapp
+  tag: "v1.0.10"  # Change this to update the version
+
