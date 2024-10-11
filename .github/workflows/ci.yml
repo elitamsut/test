@@ -35,8 +35,13 @@ jobs:
       - name: Update Image Tag in values.yaml
         run: |
           IMAGE_TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)  # Get the tag from image-config.yaml
+          echo "Current IMAGE_TAG: ${IMAGE_TAG}"  # Debug statement to check the value
           echo "Updating image tag in values.yaml to: ${IMAGE_TAG}"
           yq eval -i '.image.tag = strenv(IMAGE_TAG)' $VALUES_FILE  # Update the image tag in values.yaml
+          
+          # Verify the update
+          echo "Updated values.yaml content:"
+          cat $VALUES_FILE  # Print updated values.yaml for verification
 
       # Build Docker Image
       - name: Build Docker Image
