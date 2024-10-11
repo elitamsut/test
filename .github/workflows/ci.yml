@@ -59,6 +59,12 @@ jobs:
           echo "Pushing Docker image: ${{ env.DOCKER_IMAGE }}:${TAG}"
           docker push ${{ env.DOCKER_IMAGE }}:${TAG}
 
+      # Debug: Print current values.yaml
+      - name: Debug values.yaml
+        run: |
+          echo "Current values.yaml contents:"
+          cat flask-hello-world/values.yaml
+
       # Update Helm values with new image tag
       - name: Update Helm values
         run: |
