@@ -11,7 +11,6 @@ on:
       - test
 
 env:
-  IMAGE_CONFIG: 'image-config.yaml'
   DOCKER_IMAGE: 'elitamsut/myapp'  # Your custom Docker image name
 
 jobs:
@@ -32,10 +31,12 @@ jobs:
 
       # Build Docker Image
       - name: Build Docker Image
+        id: build
         run: |
-          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)
-          echo "Building Docker image with tag: ${TAG}"
-          docker build --pull -t ${{ env.DOCKER_IMAGE }}:${TAG} .
+          IMAGE_TAG="v1.0.$(date +%s)"  # Create a version tag based on the timestamp
+          echo "Building Docker image with tag: ${IMAGE_TAG}"
+          docker build --pull -t ${{ env.DOCKER_IMAGE }}:${IMAGE_TAG} .
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV  # Store the image tag in an environment variable
 
       # Log in to the elitamsut registry
       - name: Log in to elitamsut Registry
@@ -43,15 +44,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          registry: 'elitamsut'  # Specify your registry here
 
       # Push Docker Image
       - name: Push Docker Image
         run: |
-          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)
-          echo "Pushing Docker image: ${{ env.DOCKER_IMAGE }}:${TAG}"
-          docker push ${{ env.DOCKER_IMAGE }}:${TAG}
+          echo "Pushing Docker image: ${{ env.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}"
+          docker push ${{ env.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}
 
       # Notify Success
       - name: Notify Success
         run: echo "Docker image creation and push completed successfully!"
+
