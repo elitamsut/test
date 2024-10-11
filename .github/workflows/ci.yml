@@ -72,11 +72,6 @@ jobs:
           echo "Updating Helm values with tag: ${TAG}"
           sed -i "s/tag: .*/tag: '${TAG}'/" flask-hello-world/values.yaml  # Corrected path
 
-      # Deploy to Kubernetes
-      - name: Deploy to Kubernetes
-        run: |
-          helm upgrade --install myapp path/to/your/chart --values flask-hello-world/values.yaml
-
       # Notify Success
       - name: Notify Success
         run: echo "CI Pipeline completed successfully!"
