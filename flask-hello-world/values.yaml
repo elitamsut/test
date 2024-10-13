@@ -7,7 +7,7 @@ replicaCount: 1
 image:
   repository: elitamsut/myapp
   pullPolicy: Always
-  tag: "v1.0.14"
+  tag: "v1.0.15"
 
 imagePullSecrets: []
 nameOverride: ""
