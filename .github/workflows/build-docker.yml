@@ -1,7 +1,7 @@
 name: Build and Push Docker Image
 
 on:
-  workflow_call:  # Eli This allows it to be called from other workflows
+  workflow_call:  # This allows it to be called from other workflows
     inputs:
       IMAGE_CONFIG:
         required: true
