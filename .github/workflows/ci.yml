@@ -35,7 +35,7 @@ jobs:
       # Install dependencies and run tests
       - name: Install dependencies and run tests
         run: |
-          pip install pytest  # Install pytest
+          pip install pytest-flask  # Install pytest
           pytest  # Run tests
 
       # Set up Docker Buildx
