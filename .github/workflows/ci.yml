@@ -40,7 +40,7 @@ jobs:
 
       # Build and Push Docker Image
       - name: Build and Push Docker Image
-        uses: ./build-docker.yml  # Reference the Docker workflow file
+        uses: ./build-docker.yml  # Use the correct path to reference the reusable workflow
         with:
           IMAGE_CONFIG: ${{ env.IMAGE_CONFIG }}
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
