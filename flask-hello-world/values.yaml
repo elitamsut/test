@@ -50,14 +50,13 @@ affinity: {}
 livenessProbe:
   httpGet:
     path: /
-    port: http
-  initialDelaySeconds: 10
+    port: 8081
+  initialDelaySeconds: 60  # Increase this value
   periodSeconds: 10
-  
+
 readinessProbe:
   httpGet:
     path: /
-    port: http
-  initialDelaySeconds: 10
+    port: 8081
+  initialDelaySeconds: 30  # Increase this value
   periodSeconds: 10
-
