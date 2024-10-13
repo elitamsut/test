@@ -1,6 +1,6 @@
 # Default values for flask-hello-world.
 # This is a YAML-formatted file.
-# Declare new variables to eliT  be passed into your templates.
+# Declare new variables to be passed into your templates.
 
 replicaCount: 1
 
@@ -39,7 +39,13 @@ ingress:
         - /
   tls: []
 
-resources: {}
+resources:
+  requests:
+    memory: "256Mi"  # Adjust as necessary for your application
+    cpu: "500m"      # Adjust as necessary for your application
+  limits:
+    memory: "512Mi"  # Adjust as necessary for your application
+    cpu: "1"         # Adjust as necessary for your application
 
 nodeSelector: {}
 
@@ -50,13 +56,15 @@ affinity: {}
 livenessProbe:
   httpGet:
     path: /
-    port: 8081
-  initialDelaySeconds: 60  # Increase this value
+    port: 8081  # Ensure this matches
+  initialDelaySeconds: 30
   periodSeconds: 10
+  failureThreshold: 3
 
 readinessProbe:
   httpGet:
     path: /
-    port: 8081
-  initialDelaySeconds: 30  # Increase this value
-  periodSeconds: 10
+    port: 8081  # Ensure this matches
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 3
