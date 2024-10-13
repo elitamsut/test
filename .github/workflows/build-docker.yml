@@ -1,7 +1,7 @@
-name: Build Docker Image Reusable
+name: Build and Push Docker Image
 
 on:
-  workflow_call:  # This allows the workflow to be called from other workflows
+  workflow_call:  # Eli This allows it to be called from other workflows
     inputs:
       IMAGE_CONFIG:
         required: true
@@ -13,31 +13,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
 
+    steps:
+      # Set up Docker Buildx
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
+      # Build Docker Image
       - name: Build Docker Image
         id: build
         run: |
-          TAG=$(yq eval '.image.tag' ${{ inputs.IMAGE_CONFIG }})
+          TAG=$(yq eval '.image.tag' ${{ inputs.IMAGE_CONFIG }})  # Get the tag from image-config.yaml
           echo "Building Docker image with tag: ${TAG}"
           docker build --pull -t ${{ inputs.DOCKER_IMAGE }}:${TAG} .
-          echo "IMAGE_TAG=${TAG}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${TAG}" >> $GITHUB_ENV  # Store the image tag in an environment variable
 
+      # Log in to the elitamsut registry
       - name: Log in to elitamsut Registry
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Push Docker Image
       - name: Push Docker Image
         run: |
           echo "Pushing Docker image: ${{ inputs.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}"
           docker push ${{ inputs.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}
 
+      # Notify Success
       - name: Notify Success
         run: echo "Docker image creation and push completed successfully!"
+

@@ -38,9 +38,10 @@ jobs:
           pip install pytest-flask  # Install pytest
           pytest  # Run tests
 
-      # Reuse the Docker build and push workflow
+      # Build and Push Docker Image
       - name: Build and Push Docker Image
-        uses: ./.github/workflows/build-docker.yml
+        uses: ./build-docker.yml  # Reference the Docker workflow file
         with:
-          IMAGE_CONFIG: 'image-config.yaml'
-          DOCKER_IMAGE: 'elitamsut/myapp'
+          IMAGE_CONFIG: ${{ env.IMAGE_CONFIG }}
+          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
+
