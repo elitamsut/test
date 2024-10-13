@@ -38,32 +38,14 @@ jobs:
           pip install pytest-flask  # Install pytest
           pytest  # Run tests
 
-      # Set up Docker Buildx
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
-
-      # Build Docker Image
-      - name: Build Docker Image
-        id: build
-        run: |
-          TAG=$(yq eval '.image.tag' $IMAGE_CONFIG)  # Get the tag from image-config.yaml
-          echo "Building Docker image with tag: ${TAG}"
-          docker build --pull -t ${{ env.DOCKER_IMAGE }}:${TAG} .
-          echo "IMAGE_TAG=${TAG}" >> $GITHUB_ENV  # Store the image tag in an environment variable
-
-      # Log in to the elitamsut registry
-      - name: Log in to elitamsut Registry
-        uses: docker/login-action@v2
+      # Reusable Docker Build and Push Workflow
+      - name: Build and Push Docker Image
+        uses: ./.github/workflows/build-docker.yml
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Push Docker Image
-      - name: Push Docker Image
-        run: |
-          echo "Pushing Docker image: ${{ env.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}"
-          docker push ${{ env.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}
+          IMAGE_CONFIG: 'image-config.yaml'
+          DOCKER_IMAGE: 'elitamsut/myapp'
 
       # Notify Success
       - name: Notify Success
-        run: echo "Docker image creation and push completed successfully!"
+        run: echo "Docker image creation, tests, and push completed successfully!"
+
