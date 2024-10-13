@@ -1,6 +1,6 @@
 # Default values for flask-hello-world.
 # This is a YAML-formatted file.
-# Declare variables to eli  be passed into your templates.
+# Declare variables to eliT  be passed into your templates.
 
 replicaCount: 1
 
