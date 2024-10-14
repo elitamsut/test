@@ -1,11 +1,9 @@
-# Declare new variables to be passed into your templates.
-
 replicaCount: 1
 
 image:
   repository: elitamsut/myapp
   pullPolicy: Always
-  tag: "v1.0.17"
+  tag: "v1.0.20"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -25,7 +23,7 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 443
+  port: 8080  # Internal port changed to 8080
 
 ingress:
   enabled: true
@@ -33,13 +31,13 @@ ingress:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "true"  # Ensure SSL redirection is enabled
   hosts:
-    - host: customer2-app-127-0-0-1.nip.io
+    - host: customer2-app-127-0-0-1.nip.io  # Your application domain
       paths:
         - /
   tls:
     - secretName: wildcard-tls-secret  # Replace with your actual TLS secret name
       hosts:
-        - customer2-app-127-0-0-1.nip.io
+        - customer2-app-127-0-0-1.nip.io  # Your domain name
 
 resources:
   requests:
@@ -58,7 +56,7 @@ affinity: {}
 livenessProbe:
   httpGet:
     path: /
-    port: 443  # Ensure this matches
+    port: 8080  # Ensure this matches internal port
   initialDelaySeconds: 30
   periodSeconds: 10
   failureThreshold: 3
@@ -66,8 +64,7 @@ livenessProbe:
 readinessProbe:
   httpGet:
     path: /
-    port: 443  # Ensure this matches
+    port: 8080  # Ensure this matches internal port
   initialDelaySeconds: 10
   periodSeconds: 5
   failureThreshold: 3
-

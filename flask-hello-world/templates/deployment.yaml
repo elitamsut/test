@@ -19,20 +19,20 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: https
-              containerPort: 443
+            - name: http
+              containerPort: 8080  # Change the internal port to 8080
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /
-              port: https
+              port: http  # Use the internal port for liveness probe
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /
-              port: http
+              port: http  # Use the internal port for readiness probe
             initialDelaySeconds: 5
             periodSeconds: 10
           {{- with .Values.volumeMounts }}
