@@ -7,9 +7,9 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-# Install Flask and Werkzeug specific versions
+# Install Flask, Werkzeug, and Gunicorn
 RUN pip install --upgrade pip && \
-    pip install Flask==2.0.3 Werkzeug==2.0.3
+    pip install Flask==2.0.3 Werkzeug==2.0.3 gunicorn
 
 # Copy the SSL certificate and key into the container
 COPY wildcard-cert.pem /app/wildcard-cert.pem
@@ -18,12 +18,9 @@ COPY wildcard-key.pem /app/wildcard-key.pem
 # Ensure the SSL files have appropriate permissions
 RUN chmod 600 /app/wildcard-cert.pem /app/wildcard-key.pem
 
-# Expose port 8080 for Flask app (or the port you're using)
+# Expose port 8080 for HTTPS
 EXPOSE 8080
 
-# Define environment variable for Flask
-ENV FLASK_APP=app.py
-
-# Run the Flask app with SSL
-CMD ["flask", "run", "--host=0.0.0.0", "--port=8080"]
+# Run Gunicorn with HTTPS enabled
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "--certfile=/app/wildcard-cert.pem", "--keyfile=/app/wildcard-key.pem", "app:app"]
 
