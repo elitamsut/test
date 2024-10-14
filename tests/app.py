@@ -5,8 +5,7 @@ app = Flask(__name__)
 @app.route('/')
 def hello_world():
     return 'Hello, World!'
-
+    # This is  Eli migdal version 18 testing   task comment for testing purposes final
 if __name__ == '__main__':
-    # Use your wildcard SSL certificate and key
-    app.run(host='0.0.0.0', port=8080, ssl_context=('wildcard-cert.pem', 'wildcard-key.pem'))
+    app.run(host='0.0.0.0', port=8080)
 
