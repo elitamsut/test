@@ -10,6 +10,12 @@ metadata:
       {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
+  tls:
+    - hosts:
+      {{- range .Values.ingress.hosts }}
+        - {{ .host }}
+      {{- end }}
+      secretName: {{ .Values.ingress.tls.secretName }}  # Add this line
   rules:
     {{- range .Values.ingress.hosts }}
     - host: {{ .host }}
