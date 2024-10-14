@@ -32,7 +32,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /
-              port: http
+              port: https
             initialDelaySeconds: 5
             periodSeconds: 10
           {{- with .Values.volumeMounts }}
