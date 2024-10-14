@@ -1,4 +1,3 @@
-# Example Dockerfile
 FROM python:3.9-slim
 
 # Set the working directory
@@ -14,12 +13,12 @@ RUN apt-get update && apt-get install -y \
 # Copy the requirements file
 COPY requirements.txt .
 
-# Debugging: Check Python and pip versions
-RUN python --version
-RUN pip --version
-
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the SSL certificate and key files
+COPY wildcard-cert.pem /app/wildcard-cert.pem
+COPY wildcard-key.pem /app/wildcard-key.pem
 
 # Copy the rest of your application code
 COPY . .
