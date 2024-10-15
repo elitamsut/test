@@ -27,12 +27,14 @@ spec:
             httpGet:
               path: /
               port: http  # Use the internal port for liveness probe
+              scheme: HTTPS  # Specify HTTPS for liveness probe
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /
               port: http  # Use the internal port for readiness probe
+              scheme: HTTPS  # Specify HTTPS for readiness probe
             initialDelaySeconds: 5
             periodSeconds: 10
           {{- with .Values.volumeMounts }}
