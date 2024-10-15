@@ -35,6 +35,12 @@ jobs:
         run: |
           pip install pytest-flask  # Install pytest
 
+      # Clean up __pycache__ and .pyc files
+      - name: Clean up __pycache__ and .pyc files
+        run: |
+          find . -name "__pycache__" -exec rm -rf {} +
+          find . -name "*.pyc" -exec rm -f {} +
+
       # Run tests
       - name: Run tests
         run: |
@@ -69,4 +75,3 @@ jobs:
       # Notify Success
       - name: Notify Success
         run: echo "Docker image creation and push completed successfully!"
-
