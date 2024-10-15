@@ -70,4 +70,3 @@ readinessProbe:
   initialDelaySeconds: 10  # Adjust if needed
   periodSeconds: 5
   failureThreshold: 3
-
