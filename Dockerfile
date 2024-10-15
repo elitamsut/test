@@ -1,28 +1,26 @@
-FROM python:3.9-slim
+# Use an official Python runtime as a base image
+FROM python:3.10-slim
 
-# Set the working directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies (if needed)
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libffi-dev \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-# Copy the requirements file
-COPY requirements.txt .
+# Install Flask, Werkzeug, and Gunicorn
+RUN pip install --upgrade pip && \
+    pip install Flask==2.0.3 Werkzeug==2.0.3 gunicorn
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the SSL certificate and key files
+# Copy the SSL certificate and key into the container
 COPY wildcard-cert.pem /app/wildcard-cert.pem
 COPY wildcard-key.pem /app/wildcard-key.pem
 
-# Copy the rest of your application code
-COPY . .
+# Ensure the SSL files have appropriate permissions
+RUN chmod 600 /app/wildcard-cert.pem /app/wildcard-key.pem
 
-# Command to run your application
-CMD ["python", "app.py"]
+# Expose port 8080 for HTTPS
+EXPOSE 8080
+
+# Run Gunicorn with HTTPS enabled
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "--certfile=/app/wildcard-cert.pem", "--keyfile=/app/wildcard-key.pem", "app:app"]
 

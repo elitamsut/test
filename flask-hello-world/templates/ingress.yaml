@@ -26,6 +26,7 @@ spec:
           {{- end }}
     {{- end }}
 
+
   {{- if .Values.ingress.tls }}
   tls:
     {{- range .Values.ingress.tls }}
