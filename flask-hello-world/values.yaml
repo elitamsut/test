@@ -1,4 +1,4 @@
-replicaCount: 1
+replicaCount: 1  # Number of replicas for the application
 
 image:
   repository: elitamsut/myapp
@@ -55,16 +55,20 @@ affinity: {}
 
 livenessProbe:
   httpGet:
+    scheme: HTTPS  # Use HTTPS since the app is listening with SSL
     path: /
-    port: 8080  # Ensure this matches internal port
-  initialDelaySeconds: 30
+    port: 8080
+
+  initialDelaySeconds: 30  # Adjust if needed
   periodSeconds: 10
   failureThreshold: 3
 
 readinessProbe:
   httpGet:
+    scheme: HTTPS  # Use HTTPS since the app is listening with SSL
     path: /
-    port: 8080  # Ensure this matches internal port
-  initialDelaySeconds: 10
+    port: 8080
+
+  initialDelaySeconds: 10  # Adjust if needed
   periodSeconds: 5
   failureThreshold: 3
