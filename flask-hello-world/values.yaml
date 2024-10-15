@@ -58,8 +58,9 @@ livenessProbe:
     scheme: HTTPS  # Use HTTPS since the app is listening with SSL
     path: /
     port: 8080
-  initialDelaySeconds: 60  # Adjust if needed
-  periodSeconds: 30
+
+  initialDelaySeconds: 30  # Adjust if needed
+  periodSeconds: 10
   failureThreshold: 3
 
 readinessProbe:
@@ -67,6 +68,7 @@ readinessProbe:
     scheme: HTTPS  # Use HTTPS since the app is listening with SSL
     path: /
     port: 8080
-  initialDelaySeconds: 60  # Adjust if needed
-  periodSeconds: 10
+
+  initialDelaySeconds: 10  # Adjust if needed
+  periodSeconds: 5
   failureThreshold: 3
