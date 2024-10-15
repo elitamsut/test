@@ -10,19 +10,13 @@ metadata:
       {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  tls:
-    - hosts:
-      {{- range .Values.ingress.hosts }}
-        - {{ .host }}
-      {{- end }}
-      secretName: {{ .Values.ingress.tls.secretName }}  # Add this line
   rules:
     {{- range .Values.ingress.hosts }}
     - host: {{ .host }}
       http:
         paths:
           {{- range .paths }}
-          - path: {{ . }}  # Accessing each path in the list
+          - path: {{ . }}
             pathType: Prefix
             backend:
               service:
@@ -31,5 +25,18 @@ spec:
                   number: {{ $.Values.service.port }}
           {{- end }}
     {{- end }}
+
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . }}
+        {{- end }}
+      {{- if .secretName }}
+      secretName: {{ .secretName }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
 {{- end }}
 
