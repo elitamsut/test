@@ -3,7 +3,7 @@ replicaCount: 1  # Number of replicas for the application
 image:
   repository: elitamsut/myapp
   pullPolicy: Always
-  tag: "v1.0.20"
+  tag: "v1.0.21"
 
 imagePullSecrets: []
 nameOverride: ""
