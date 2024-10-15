@@ -9,4 +9,3 @@ def hello_world():
 if __name__ == '__main__':
     # Use your wildcard SSL certificate and key
     app.run(host='0.0.0.0', port=8080, ssl_context=('wildcard-cert.pem', 'wildcard-key.pem'))
-
