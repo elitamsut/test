@@ -12,7 +12,12 @@ function Convert-CerToPemAndAppendToBundle {
 
         # Export the certificate to PEM format (Base64 encoded)
         $base64Cert = [Convert]::ToBase64String($cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
-        $pem = "-----BEGIN CERTIFICATE-----" + "`r`n" + $base64Cert + "`r`n" + "-----END CERTIFICATE-----" + "`r`n"
+
+        # Split the Base64 string into lines of 64 characters
+        $formattedBase64Cert = $base64Cert -replace "(.{64})", '$1`r`n'
+
+        # Construct the PEM format
+        $pem = "-----BEGIN CERTIFICATE-----" + "`r`n" + $formattedBase64Cert + "`r`n" + "-----END CERTIFICATE-----" + "`r`n"
 
         # Append the PEM formatted certificate to the PEM bundle
         Add-Content -Path $pemBundlePath -Value $pem
@@ -22,6 +27,7 @@ function Convert-CerToPemAndAppendToBundle {
         Write-Host "Failed to convert and append $cerPath to PEM bundle: $_"
     }
 }
+
 
 # Function to export .pfx certificates and append to a bundle
 function Export-PfxAndAppendToBundle {
