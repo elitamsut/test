@@ -1,4 +1,4 @@
-﻿# Function to convert .cer to .pem and append to a PEM bundle
+# Function to convert .cer to .pem and append to a PEM bundle
 function Convert-CerToPemAndAppendToGitCABundle {
     param (
         [string]$cerPath,
