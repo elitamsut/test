@@ -36,7 +36,6 @@ $stores = @(
     "Cert:\LocalMachine\CA"           # Intermediate CAs (LocalMachine)
 )
 
-
 # Client Certificate List
 $clients = @(
     @{
@@ -53,7 +52,8 @@ $clients = @(
     },
     @{
         Name = "AWSCLI"
-        CerPath = "C:\Program Files\Amazon\AWSCLIV2\awscli\botocore\cacert.pem"
+        #CerPath = "C:\Program Files\Amazon\AWSCLIV2\awscli\botocore\cacert.pem"
+        CerPath = "C:\Program Files\Amazon\AWSCLI\runtime\Lib\site-packages\botocore\cacert.pem"
         StoreNames = @("Cert:\CurrentUser\My", "Cert:\LocalMachine\Root")
         CertFilter = "*GlobalSign*"
     }
@@ -64,6 +64,17 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git is not installed or not in the PATH. Please install Git and add it to the PATH."
     exit
 }
+
+# Validate if all client certificate paths exist and are accessible
+foreach ($client in $clients) {
+    if (-not (Test-Path $client.CerPath)) {
+        Write-Host "Certificate file for $($client.Name) not found at $($client.CerPath). Please verify the path."
+        exit
+    }
+}
+
+# Check if Git CA bundle file exists
+$gitCABundlePath = "C:\Program Files\Git\mingw64\etc\ssl\certs\ca-bundle.crt"
 if (-not (Test-Path $gitCABundlePath)) {
     Write-Host "Git CA bundle file not found at $gitCABundlePath. Ensure Git is properly installed."
     exit
@@ -128,5 +139,9 @@ if ($generatedCerFiles.Count -gt 0) {
 } else {
     Write-Host "No .cer files were generated."
 }
+
+# Additional steps to update Git configuration
+Write-Host "Certificates added to $gitCABundlePath successfully"
+git config --global http.sslCAInfo "C:\Program Files\Git\mingw64\etc\ssl\certs\ca-bundle.crt" --replace-all
 
 Write-Host "Process complete."
