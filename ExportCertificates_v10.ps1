@@ -1,3 +1,6 @@
+# Git CA bundle path
+$gitCABundlePath = "C:\Program Files\Git\mingw64\etc\ssl\certs\ca-bundle.crt"
+
 # Function to convert .cer to .pem and append to a PEM bundle in vertical format
 function Convert-CerToPemAndAppendToGitCABundle {
     param (
@@ -15,12 +18,9 @@ function Convert-CerToPemAndAppendToGitCABundle {
 
         # Break Base64 string into chunks of 64 characters per line to make it vertical
         $base64CertVertical = $base64Cert -replace "(.{64})", '$1`n'
-# Format the PEM certificate
+
+        # Format the PEM certificate
         $pem = "-----BEGIN CERTIFICATE-----`n$($base64CertVertical.Replace('`', ''))`n-----END CERTIFICATE-----"
-
-
-
-
 
         # Append the PEM formatted certificate to the Git CA bundle
         Add-Content -Path $gitCABundlePath -Value "`n$pem"
@@ -30,11 +30,10 @@ function Convert-CerToPemAndAppendToGitCABundle {
     }
 }
 
-
-# Define the Git CA bundle path
-$gitCABundlePath = "C:\Program Files\Git\mingw64\etc\ssl\certs\ca-bundle.crt" # Adjust the path to your actual Git CA bundle file location
-
 # Define client configurations
+# Get the current user's AppData path
+$userAppData = [System.Environment]::GetFolderPath('LocalApplicationData')
+
 $clients = @(
     @{
         Name = "Git"
@@ -51,6 +50,12 @@ $clients = @(
     @{
         Name = "AWSCLI"
         CerPath = "C:\\Program Files\\Amazon\\AWSCLI\\runtime\\Lib\\site-packages\\pip\\_vendor\\certifi\\cacert.pem"
+        StoreNames = @("Cert:\\CurrentUser\\My", "Cert:\\LocalMachine\\Root")
+        CertFilter = "*ameroot*"
+    },
+    @{
+        Name = "GoogleCloudCLI"
+        CerPath = "$userAppData\\Google\\Cloud SDK\\google-cloud-sdk\\platform\\bundledpython\\Lib\\site-packages\\pip\\_vendor\\certifi\\cacert.pem"
         StoreNames = @("Cert:\\CurrentUser\\My", "Cert:\\LocalMachine\\Root")
         CertFilter = "*ameroot*"
     }
