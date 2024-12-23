@@ -1,0 +1,54 @@
+# Company CA bundle path (source)
+$companyCAPath = "C:\Path\To\CompanyCA\company-bundle.pem"
+
+# Define client-specific paths
+$clients = @(
+    @{
+        Name = "Azure"
+        CACertPath = "C:\Program Files\Microsoft SDKs\Azure\CLI2\Lib\site-packages\certifi\cacert.pem"
+    },
+    @{
+        Name = "Google"
+        CACertPath = "$env:APPDATA\Google\Cloud SDK\google-cloud-sdk\platform\bundledpython\Lib\site-packages\pip\_vendor\certifi\cacert.pem"
+    },
+    @{
+        Name = "AWS"
+        CACertPath = "C:\Program Files\Amazon\AWSCLI\runtime\Lib\site-packages\pip\_vendor\certifi\cacert.pem"
+    },
+    @{
+        Name = "GitBash"
+        CACertPath = "C:\Program Files\Git\mingw64\ssl\certs\ca-bundle.crt"
+    }
+)
+
+# Certificates to append
+$certificates = @(
+@"
+-----BEGIN CERTIFICATE-----
+<First Certificate Content>
+-----END CERTIFICATE-----
+"@,
+@"
+-----BEGIN CERTIFICATE-----
+<Second Certificate Content>
+-----END CERTIFICATE-----
+"@,
+@"
+-----BEGIN CERTIFICATE-----
+<Third Certificate Content>
+-----END CERTIFICATE-----
+"@
+)
+
+# Process each client
+foreach ($client in $clients) {
+    # Copy the company CA bundle to the client's path
+    Copy-Item -Path $companyCAPath -Destination $client.CACertPath -Force
+
+    # Append additional certificates
+    foreach ($cert in $certificates) {
+        $cert | Add-Content -Path $client.CACertPath
+    }
+}
+
+Write-Host "All clients processed successfully!"
