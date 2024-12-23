@@ -15,62 +15,48 @@ function Convert-CerToPemAndAppendToGitCABundle {
 
         # Break Base64 string into chunks of 64 characters per line to make it vertical
         $base64CertVertical = $base64Cert -replace "(.{64})", '$1`n'
+# Format the PEM certificate
+        $pem = "-----BEGIN CERTIFICATE-----`n$($base64CertVertical.Replace('`', ''))`n-----END CERTIFICATE-----"
 
-        # Clean any unwanted characters such as 'n' and trim trailing whitespace or newlines
-        $base64CertVertical = $base64CertVertical -replace "n", ""  # Remove 'n' characters
-        $base64CertVertical = $base64CertVertical.TrimEnd()  # Remove any trailing spaces or newlines
 
-        # Format the PEM certificate
-        $pem = "-----BEGIN CERTIFICATE-----`n" + $base64CertVertical + "`n" + "-----END CERTIFICATE-----"
 
-        # Ensure proper PEM format, trimming excess newlines
-        $pem = $pem.Trim()
 
-        # Append the PEM formatted certificate to the Git CA bundle with one line break between certificates
+
+        # Append the PEM formatted certificate to the Git CA bundle
         Add-Content -Path $gitCABundlePath -Value "`n$pem"
         Write-Host "Appended certificate from $cerPath to Git CA bundle at $gitCABundlePath"
-    }
-    catch {
+    } catch {
         Write-Host "Failed to convert and append $cerPath to Git CA bundle: $_"
     }
 }
 
+
 # Define the Git CA bundle path
 $gitCABundlePath = "C:\Program Files\Git\mingw64\etc\ssl\certs\ca-bundle.crt" # Adjust the path to your actual Git CA bundle file location
 
-# List all certificate stores (both CurrentUser and LocalMachine)
-$stores = @(
-    "Cert:\CurrentUser\My",           # Personal certificates (CurrentUser)
-    "Cert:\CurrentUser\Root",         # Trusted Root Certificates (CurrentUser)
-    "Cert:\CurrentUser\CA",           # Intermediate CAs (CurrentUser)
-    "Cert:\LocalMachine\My",          # Personal certificates (LocalMachine)
-    "Cert:\LocalMachine\Root",        # Trusted Root Certificates (LocalMachine)
-    "Cert:\LocalMachine\CA"           # Intermediate CAs (LocalMachine)
-)
-
-# Client Certificate List
+# Define client configurations
 $clients = @(
     @{
         Name = "Git"
         CerPath = $gitCABundlePath
-        StoreNames = @("Cert:\CurrentUser\My", "Cert:\LocalMachine\Root")
-        CertFilter = "*ISRG Root X1*"
+        StoreNames = @("Cert:\\CurrentUser\\My", "Cert:\\LocalMachine\\Root")
+        CertFilter = "*ameroot*"
     },
     @{
         Name = "AzureCLI"
-        CerPath = "C:\Program Files\Microsoft SDKs\Azure\CLI2\Lib\site-packages\certifi\cacert.pem"
-        StoreNames = @("Cert:\CurrentUser\My", "Cert:\LocalMachine\Root")
-        CertFilter = "*ISRG Root X1*"
+        CerPath = "C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\Lib\\site-packages\\certifi\\cacert.pem"
+        StoreNames = @("Cert:\\CurrentUser\\My", "Cert:\\LocalMachine\\Root")
+        CertFilter = "*ameroot*"
     },
     @{
         Name = "AWSCLI"
-        CerPath = "C:\Program Files\Amazon\AWSCLI\runtime\Lib\site-packages\pip\_vendor\certifi\cacert.pem"
-        StoreNames = @("Cert:\CurrentUser\My", "Cert:\LocalMachine\Root")
-        CertFilter = "*ISRG Root X1*"
+        CerPath = "C:\\Program Files\\Amazon\\AWSCLI\\runtime\\Lib\\site-packages\\pip\\_vendor\\certifi\\cacert.pem"
+        StoreNames = @("Cert:\\CurrentUser\\My", "Cert:\\LocalMachine\\Root")
+        CertFilter = "*ameroot*"
     }
 )
 
-# Check if Git is installed and the CA bundle file exists
+# Verify Git installation and the existence of the CA bundle file
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git is not installed or not in the PATH. Please install Git and add it to the PATH."
     exit
@@ -80,7 +66,7 @@ if (-not (Test-Path $gitCABundlePath)) {
     exit
 }
 
-# List to track all generated .cer file paths for deletion later
+# Track all generated .cer file paths for cleanup
 $generatedCerFiles = @()
 
 # Process each client and their certificates
@@ -93,7 +79,7 @@ foreach ($client in $clients) {
         # Get all certificates in the store
         $certs = Get-ChildItem -Path $store
 
-        # Filter certificates based on the CertFilter pattern (e.g., f)
+        # Filter certificates based on the CertFilter pattern
         $filteredCerts = $certs | Where-Object { $_.Subject -like $client.CertFilter -or $_.FriendlyName -like $client.CertFilter }
 
         # Process each filtered certificate
@@ -101,19 +87,18 @@ foreach ($client in $clients) {
             # Export the certificate to a .cer file (without the private key)
             $cerExportPath = "$($env:TEMP)\$($cert.Subject.Replace(' ', '_')).cer"
             try {
-                Export-Certificate -Cert $cert -FilePath $cerExportPath
+                Export-Certificate -Cert $cert -FilePath $cerExportPath -Type CERT
                 Write-Host "Exported certificate for $($cert.Subject) to $cerExportPath"
 
-                # Add the .cer file to the list for later deletion
+                # Add the .cer file to the list for later cleanup
                 $generatedCerFiles += $cerExportPath
-            }
-            catch {
+
+                # Convert and append the exported .cer file to the Git CA bundle in PEM format
+                Convert-CerToPemAndAppendToGitCABundle -cerPath $cerExportPath -gitCABundlePath $client.CerPath
+            } catch {
                 Write-Host "Failed to export certificate for $($cert.Subject): $_"
                 continue
             }
-
-            # Convert and append the exported .cer file to the Git CA bundle in PEM format
-            Convert-CerToPemAndAppendToGitCABundle -cerPath $cerExportPath -gitCABundlePath $client.CerPath
         }
 
         # If no certificates are found matching the filter
@@ -123,7 +108,7 @@ foreach ($client in $clients) {
     }
 }
 
-# Clean up: Print and delete all .cer files generated during the script execution
+# Cleanup: Print and delete all .cer files generated during the script execution
 Write-Host "Cleaning up generated .cer files:"
 if ($generatedCerFiles.Count -gt 0) {
     foreach ($cerFile in $generatedCerFiles) {
@@ -131,8 +116,7 @@ if ($generatedCerFiles.Count -gt 0) {
         try {
             Remove-Item -Path $cerFile -Force -ErrorAction SilentlyContinue
             Write-Host "Deleted .cer file: $cerFile"
-        }
-        catch {
+        } catch {
             Write-Host "Failed to delete $cerFile, but continuing..."
         }
     }
