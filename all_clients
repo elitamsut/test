@@ -21,34 +21,21 @@ $clients = @(
     }
 )
 
-# Certificates to append
-$certificates = @(
-@"
------BEGIN CERTIFICATE-----
-<First Certificate Content>
------END CERTIFICATE-----
-"@,
-@"
------BEGIN CERTIFICATE-----
-<Second Certificate Content>
------END CERTIFICATE-----
-"@,
-@"
------BEGIN CERTIFICATE-----
-<Third Certificate Content>
------END CERTIFICATE-----
-"@
-)
+# Read the company CA bundle (including the three certificates)
+$companyCACertificates = Get-Content -Path $companyCAPath
 
 # Process each client
 foreach ($client in $clients) {
-    # Copy the company CA bundle to the client's path
-    Copy-Item -Path $companyCAPath -Destination $client.CACertPath -Force
+    Write-Host "Processing $($client.Name) client"
 
-    # Append additional certificates
-    foreach ($cert in $certificates) {
-        $cert | Add-Content -Path $client.CACertPath
-    }
+    # Ensure target directory exists
+    $targetDir = Split-Path -Path $client.CACertPath
+    New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+
+    # Append the company CA certificates to the client's existing certificate file
+    $companyCACertificates | Add-Content -Path $client.CACertPath
+
+    Write-Host "Appended company CA certificates to $($client.CACertPath)"
 }
 
 Write-Host "All clients processed successfully!"
