@@ -1,4 +1,4 @@
-# Company CA bundle path (source)
+ Company CA bundle path (
 $companyCAPath = "C:\Path\To\CompanyCA\company-bundle.pem"
 
 # Define client-specific paths
