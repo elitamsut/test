@@ -1,0 +1,60 @@
+# Company CA bundle path (source) niki need's to update the pem bundle location
+$companyCAPath = "C:\Users\elit\Desktop\ca-bundle.crt"
+
+# Define client-specific paths
+$clients = @(
+    @{
+        Name = "Azure"
+        CACertPath = "C:\Program Files\Microsoft SDKs\Azure\CLI2\Lib\site-packages\certifi\cacert.pem"
+    },
+    @{
+        Name = "AWS"
+        CACertPath = "C:\Program Files\Amazon\AWSCLI\runtime\Lib\site-packages\pip\_vendor\certifi\cacert.pem"
+    },
+    @{
+        Name = "GitBash"
+        CACertPath = "C:\Program Files\Git\mingw64\ssl\certs\ca-bundle.crt"
+    },
+    @{
+       Name = "Google"
+        CACertPath = [System.IO.Path]::Combine($env:APPDATA, "Google\Cloud SDK\google-cloud-sdk\platform\bundledpython\Lib\site-packages\pip\_vendor\certifi\cacert.pem")
+    }
+)
+
+
+# Function to get the checksum of a file
+function Get-FileChecksum($filePath) {
+    $hash = Get-FileHash -Path $filePath -Algorithm SHA256
+    return $hash.Hash
+}
+
+# Process each client
+foreach ($client in $clients) {
+    Write-Host "Processing $($client.Name) client"
+
+    # Ensure target directory exists
+    $targetDir = Split-Path -Path $client.CACertPath
+    if (!(Test-Path -Path $targetDir)) {
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+    }
+
+    # Get the checksum of the company CA bundle
+    $companyCAChecksum = Get-FileChecksum -filePath $companyCAPath
+
+    # Get the checksum of the existing client certificate file
+    if (Test-Path -Path $client.CACertPath) {
+        $clientCAChecksum = Get-FileChecksum -filePath $client.CACertPath
+
+        # Check if the company CA bundle is already appended by comparing checksums
+        if ($companyCAChecksum -eq $clientCAChecksum) {
+            Write-Host "$($client.Name) client: Company CA bundle already appended, skipping..."
+            continue
+        }
+    }
+
+    # Append the company CA bundle content to the client's certificate file
+    Get-Content -Path $companyCAPath | Out-File -FilePath $client.CACertPath -Append -Encoding ASCII
+    Write-Host "Appended company CA bundle to $($client.CACertPath)"
+}
+
+Write-Host "All clients processed successfully!"
