@@ -53,7 +53,7 @@ foreach ($client in $clients) {
     }
 
     # Append the company CA bundle content to the client's certificate file
-    Get-Content -Path $companyCAPath | Out-File -FilePath $client.CACertPath -Append -Encoding ASCII
+    Get-Content -Path $companyCAPath | Out-File -FilePath $client.CACertPath -Append -Encoding UTF8
     Write-Host "Appended company CA bundle to $($client.CACertPath)"
 }
 
