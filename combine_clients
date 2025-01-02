@@ -55,6 +55,8 @@ foreach ($client in $clients) {
     # Append the company CA bundle content to the client's certificate file
     Get-Content -Path $companyCAPath | Out-File -FilePath $client.CACertPath -Append -Encoding UTF8
     Write-Host "Appended company CA bundle to $($client.CACertPath)"
+    # Updating Git's SSL configuration using the command
+    git config --global http.sslCAInfo "C:\Program Files\Git\mingw64\etc\ssl\certs\ca-bundle.crt" --replace-all
 }
 
 Write-Host "All clients processed successfully!"
