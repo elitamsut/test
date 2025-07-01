@@ -27,3 +27,12 @@ To install the Helm chart for this application, follow these steps:
 
 ## Accessing the Application
 http://customer2-app-127-0-0-1.nip.io:8080/
+
+##  What’s being tested:
+Sends a GET request to the root path (/).
+
+Verifies:
+
+The status code is 200 (OK).
+
+The response data (body) is exactly b'Hello, World!' (as bytes).
