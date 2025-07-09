@@ -1,6 +1,6 @@
 # Company CA bundle path (source) niki need's to update the pem bundle location
 $companyCAPath = "C:\Users\elit\Desktop\ca-bundle.crt"
-
+####
 # Define client-specific paths
 $clients = @(
     @{
