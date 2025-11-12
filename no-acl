@@ -32,50 +32,6 @@ data "aws_subnet" "subnet_b" {
   id = "subnet-f9b" # DHCP2
 }
 
-
-# =========================
-# Security Group
-# (allows SSH + Kea Control API + DHCP inside VPC)
-# =========================
-resource "aws_security_group" "kea_sg" {
-  vpc_id = data.aws_vpc.existing.id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow SSH"
-  }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Kea Control Agent API"
-  }
-
-  ingress {
-    from_port   = 67
-    to_port     = 67
-    protocol    = "udp"
-    cidr_blocks = ["10.0.0.0/16"]
-    description = "Allow DHCP requests inside VPC"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound"
-  }
-
-  tags = { Name = "kea-sg" }
-}
-
-
 # =========================
 # Kea DHCP EC2 instances
 # =========================
@@ -84,7 +40,9 @@ resource "aws_instance" "kea" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "m5.large"
   subnet_id     = count.index == 0 ? data.aws_subnet.subnet_a.id : data.aws_subnet.subnet_b.id
-  vpc_security_group_ids = [aws_security_group.kea_sg.id]
+
+  # Use default security group
+  vpc_security_group_ids = []
 
   root_block_device {
     volume_size = 30
