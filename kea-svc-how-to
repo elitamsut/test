@@ -1,0 +1,71 @@
+cd /tmp
+tar -xzf kea-offline-packages.tar.gz
+cd kea-offline
+ls
+# kea-3.0.2.tar.xz
+# libboost-all-dev_*.deb
+# libssl-dev_*.deb
+# liblog4cplus-dev_*.deb
+
+# Install all dependencies
+sudo dpkg -i *.deb      # installs all dependencies offline
+sudo apt -f install -y   # fixes any missing links
+
+# Extract and build Kea
+tar -xf kea-3.0.2.tar.xz
+cd kea-3.0.2
+./configure
+make -j$(nproc)
+sudo make install
+
+---
+
+sudo /usr/local/sbin/kea-dhcp4 -c /usr/local/etc/kea/kea-dhcp4.conf
+
+
+* This runs the server in the foreground.
+* Good for testing or the first run.
+
+---
+
+### **Option 2: Create a systemd service (recommended)**
+
+1. Create the service file:
+
+```bash
+sudo tee /etc/systemd/system/kea-dhcp4.service <<'EOF'
+[Unit]
+Description=Kea DHCPv4 Server
+After=network.target
+
+[Service]
+ExecStart=/usr/local/sbin/kea-dhcp4 -c /usr/local/etc/kea/kea-dhcp4.conf
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+2. Enable and start the service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now kea-dhcp4
+```
+
+3. Check status:
+
+```bash
+systemctl status kea-dhcp4
+```
+
+* You should see the service **active (running)**.
+
+---
+
+💡 **Tip:**
+If you make changes to `kea-dhcp4.conf`, just reload/restart the service:
+
+```bash
+sudo systemctl restart kea-dhcp4
