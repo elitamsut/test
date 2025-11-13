@@ -6,14 +6,14 @@ provider "aws" {
 }
 
 # =========================
-# Ubuntu 22.04 AMI
+# Ubuntu 24.04 AMI (Static)
 # =========================
+# Using the specified AWS Catalog AMI
 data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["ami-07557ea5e9bef9923"] # Canonical
+  owners = ["099720109477"] # Canonical
   filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+    name   = "image-id"
+    values = ["ami-07557ea5e9bef9923"]
   }
 }
 
@@ -21,27 +21,29 @@ data "aws_ami" "ubuntu" {
 # Existing Network Resources
 # =========================
 data "aws_vpc" "existing" {
-  id = "vpc-"
+  id = "vpc-xxxxxxxx" # <-- Replace with your existing VPC ID
 }
 
 data "aws_subnet" "subnet_a" {
-  id = "subnet-" # DHCP1
+  id = "subnet-xxxxxxxx" # <-- Replace with your first subnet ID (DHCP1)
 }
 
 data "aws_subnet" "subnet_b" {
-  id = "subnet-" # DHCP2
+  id = "subnet-yyyyyyyy" # <-- Replace with your second subnet ID (DHCP2)
 }
 
 # =========================
-# Kea DHCP EC2 instances
+# Kea DHCP EC2 Instances
 # =========================
 resource "aws_instance" "kea" {
   count         = 2
   ami           = data.aws_ami.ubuntu.id
   instance_type = "m5.large"
-  subnet_id     = count.index == 0 ? data.aws_subnet.subnet_a.id : data.aws_subnet.subnet_b.id
 
-  # Use default security group
+  # Assign subnet based on instance index
+  subnet_id = count.index == 0 ? data.aws_subnet.subnet_a.id : data.aws_subnet.subnet_b.id
+
+  # Use default security group or specify one
   vpc_security_group_ids = []
 
   root_block_device {
@@ -51,5 +53,24 @@ resource "aws_instance" "kea" {
 
   tags = {
     Name = count.index == 0 ? "kea-primary" : "kea-secondary"
+    Role = "kea-dhcp"
   }
+}
+
+# =========================
+# Outputs
+# =========================
+output "kea_instance_ids" {
+  description = "IDs of the Kea DHCP EC2 instances"
+  value       = aws_instance.kea[*].id
+}
+
+output "kea_instance_public_ips" {
+  description = "Public IP addresses of the Kea DHCP EC2 instances"
+  value       = aws_instance.kea[*].public_ip
+}
+
+output "kea_instance_private_ips" {
+  description = "Private IP addresses of the Kea DHCP EC2 instances"
+  value       = aws_instance.kea[*].private_ip
 }
