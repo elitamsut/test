@@ -1,25 +1,25 @@
-    # =========================
+###########################################
 # Provider
-# =========================
+###########################################
 provider "aws" {
-  region = "il-central-1" # Israel region
+  region = "il-central-1"
 }
 
-# =========================
-# Ubuntu 24.04 AMI (Static)
-# =========================
-# Using the specified AWS Catalog AMI
+###########################################
+# Ubuntu 24.04 AMI
+###########################################
 data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
+
   filter {
     name   = "image-id"
     values = ["ami-07557ea5e9bef9923"]
   }
 }
 
-# =========================
-# Existing Network Resources
-# =========================
+###########################################
+# Existing VPC + Subnets
+###########################################
 data "aws_vpc" "existing" {
   id = "vpc-0452302a0853a2291"
 }
@@ -31,46 +31,123 @@ data "aws_subnet" "subnet_a" {
 data "aws_subnet" "subnet_b" {
   id = "subnet-0dfbf9b2cd1593ed6" # DHCP2
 }
-# =========================
-# Kea DHCP EC2 Instances
-# =========================
+
+###########################################
+# Security Group (DHCP + SSH + Stork UI)
+###########################################
+resource "aws_security_group" "kea_sg" {
+  name        = "kea-dhcp-sg"
+  description = "Security group for Kea DHCP + Stork UI"
+  vpc_id      = data.aws_vpc.existing.id
+
+  # DHCP
+  ingress {
+    description = "DHCP server"
+    from_port   = 67
+    to_port     = 67
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # SSH
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Stork UI (only DHCP2 will have it installed)
+  ingress {
+    description = "Stork UI"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all outbound
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "kea-dhcp-sg"
+  }
+}
+
+###########################################
+# EC2 Instances (Kea on both, Stork ONLY on DHCP2)
+###########################################
 resource "aws_instance" "kea" {
   count         = 2
   ami           = data.aws_ami.ubuntu.id
   instance_type = "m5.large"
 
-  # Assign subnet based on instance index
-  subnet_id = count.index == 0 ? data.aws_subnet.subnet_a.id : data.aws_subnet.subnet_b.id
+  subnet_id = count.index == 0 ?
+    data.aws_subnet.subnet_a.id :
+    data.aws_subnet.subnet_b.id
 
-  # Use default security group or specify one
-  vpc_security_group_ids = []
+  vpc_security_group_ids = [aws_security_group.kea_sg.id]
+
+  associate_public_ip_address = true
 
   root_block_device {
     volume_size = 30
     volume_type = "gp3"
   }
 
+  #######################################################
+  # User-data:
+  # - Instance 0: Kea only
+  # - Instance 1: Kea + Stork
+  #######################################################
+  user_data = count.index == 0 ? <<EOF
+#!/bin/bash
+apt update -y
+apt install -y kea-dhcp4-server kea-dhcp6-server
+systemctl enable --now kea-dhcp4-server
+systemctl enable --now kea-dhcp6-server
+EOF
+  :
+  <<EOF
+#!/bin/bash
+apt update -y
+
+# Install Kea
+apt install -y kea-dhcp4-server kea-dhcp6-server
+
+# Install Stork (server + agent)
+apt install -y isc-stork-server isc-stork-agent
+
+# Enable services
+systemctl enable --now kea-dhcp4-server
+systemctl enable --now kea-dhcp6-server
+systemctl enable --now stork-server
+systemctl enable --now stork-agent
+EOF
+
   tags = {
     Name = count.index == 0 ? "kea-primary" : "kea-secondary"
-    Role = "kea-dhcp"
+    Role = count.index == 0 ? "kea-dhcp" : "kea-dhcp-stork"
   }
 }
 
-# =========================
+###########################################
 # Outputs
-# =========================
+###########################################
 output "kea_instance_ids" {
-  description = "IDs of the Kea DHCP EC2 instances"
-  value       = aws_instance.kea[*].id
+  value = aws_instance.kea[*].id
 }
 
 output "kea_instance_public_ips" {
-  description = "Public IP addresses of the Kea DHCP EC2 instances"
-  value       = aws_instance.kea[*].public_ip
+  value = aws_instance.kea[*].public_ip
 }
 
 output "kea_instance_private_ips" {
-  description = "Private IP addresses of the Kea DHCP EC2 instances"
-  value       = aws_instance.kea[*].private_ip
+  value = aws_instance.kea[*].private_ip
 }
-Error: creating EC2 Instance: operation error EC2: RunInstances, https response error StatusCode: 400, RequestID: 88d7e5f6-f6f5-47ca-8752-19a027dc203f, api error InvalidParameterCombination: You do not have access to a default security group in VPC vpc-0452302a0853a2291. Specify a security group, and try again.
