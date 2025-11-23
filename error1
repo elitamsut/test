@@ -1,4 +1,166 @@
-vpc 10.56.36.0/22
+###############################################
+# Provider
+###############################################
+provider "aws" {
+  region = "il-central-1"
+}
 
-10.56.37.0/24
-10.56.38.0/24
+###############################################
+# AMI: Ubuntu 24.04
+###############################################
+data "aws_ami" "ubuntu" {
+  owners = ["099720109477"] # Canonical
+  filter {
+    name   = "image-id"
+    values = ["ami-07557ea5e9bef9923"]
+  }
+}
+
+###############################################
+# Existing VPC + Subnets
+###############################################
+data "aws_vpc" "existing" {
+  id = "vpc-0452302a0853a2291"
+}
+
+# DHCP1 subnet (10.56.37.0/24)
+data "aws_subnet" "subnet_a" {
+  id = "subnet-03c0adfe72e57e408"
+}
+
+# DHCP2 subnet (10.56.38.0/24)
+data "aws_subnet" "subnet_b" {
+  id = "subnet-0dfbf9b2cd1593ed6"
+}
+
+###############################################
+# Security Group - Allow ALL inbound/outbound
+###############################################
+resource "aws_security_group" "open_all" {
+  name        = "allow-all-dev"
+  description = "Allow all traffic for dev testing"
+  vpc_id      = data.aws_vpc.existing.id
+
+  ingress {
+    description = "Allow all inbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "dev-allow-all"
+  }
+}
+
+###############################################
+# User Data for DHCP only
+###############################################
+locals {
+  kea_user_data = <<-EOF
+    #!/bin/bash
+    apt update -y
+    apt install -y kea-dhcp4-server
+
+    cat <<CONFIG > /etc/kea/kea-dhcp4.conf
+    {
+      "interfaces-config": {
+        "interfaces": [ "ens5" ]
+      },
+      "subnet4": [
+        {
+          "subnet": "10.56.37.0/24",
+          "pools": [ { "pool": "10.56.37.100 - 10.56.37.200" } ],
+          "option-data": [
+            { "name": "routers", "data": "10.56.37.1" },
+            { "name": "domain-name-servers", "data": "8.8.8.8,1.1.1.1" }
+          ]
+        }
+      ]
+    }
+    CONFIG
+
+    systemctl restart kea-dhcp4-server
+  EOF
+}
+
+###############################################
+# User Data for DHCP + STORK UI
+###############################################
+locals {
+  kea_stork_user_data = <<-EOF
+    #!/bin/bash
+    apt update -y
+    apt install -y kea-dhcp4-server docker.io docker-compose
+
+    # Install Stork (UI on 8080)
+    curl -s https://downloads.isc.org/isc/stork/2.0.0/stork-2.0.0.tar.gz | tar xz
+    cd stork-2.0.0
+    docker-compose up -d
+
+    cat <<CONFIG > /etc/kea/kea-dhcp4.conf
+    {
+      "interfaces-config": {
+        "interfaces": [ "ens5" ]
+      },
+      "subnet4": [
+        {
+          "subnet": "10.56.38.0/24",
+          "pools": [ { "pool": "10.56.38.100 - 10.56.38.200" } ],
+          "option-data": [
+            { "name": "routers", "data": "10.56.38.1" },
+            { "name": "domain-name-servers", "data": "8.8.8.8,1.1.1.1" }
+          ]
+        }
+      ]
+    }
+    CONFIG
+
+    systemctl restart kea-dhcp4-server
+  EOF
+}
+
+###############################################
+# EC2 Instances (DHCP1 + DHCP2+Stork)
+###############################################
+resource "aws_instance" "kea" {
+  count         = 2
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "m5.large"
+
+  subnet_id = count.index == 0 ? data.aws_subnet.subnet_a.id : data.aws_subnet.subnet_b.id
+
+  vpc_security_group_ids = [aws_security_group.open_all.id]
+
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+  }
+
+  user_data = count.index == 0 ? local.kea_user_data : local.kea_stork_user_data
+
+  tags = {
+    Name = count.index == 0 ? "kea-primary" : "kea-secondary-stork"
+    Role = "kea-dhcp"
+  }
+}
+
+###############################################
+# Outputs
+###############################################
+output "kea_private_ips" {
+  value = aws_instance.kea[*].private_ip
+}
+
+output "kea_public_ips" {
+  value = aws_instance.kea[*].public_ip
+}
