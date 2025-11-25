@@ -1,0 +1,3 @@
+cmd run as admin
+
+icacls "kea1.pem" /inheritance:r /grant %USERNAME%:R

@@ -1,0 +1,14 @@
+
+
+PS C:\Program Files\Amazon\AWSCLIV2> .\aws.exe configure sso
+SSO session name (Recommended): my-sso
+SSO start URL [None]: https://d-ce673acac1.awsapps.com/start/#/?tab=accounts
+SSO region [None]: il-central-1
+SSO registration scopes [sso:account:access]:
+
+json
+default to the cli path
+
+
+
+ima role = EC2SSMRole
