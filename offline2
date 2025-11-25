@@ -1,0 +1,72 @@
+Here is the short, clean, correct method to create an offline Kea tar.gz package from inside an Ubuntu build container, so you can later install it on another EC2 VM without internet.
+
+⸻
+
+✅ FASTEST WAY to build an offline Kea tar.gz
+
+Inside Ubuntu build container
+	1.	Install build dependencies
+(needs internet only in the build container)
+
+apt-get update
+apt-get install -y build-essential automake libtool pkg-config \
+  libssl-dev libboost-all-dev liblog4cplus-dev libpq-dev \
+  libmysqlclient-dev libcurl4-openssl-dev flex bison
+
+	2.	Download Kea source
+
+wget https://ftp.isc.org/isc/kea/3.0.0/kea-3.0.0.tar.gz
+tar -xzf kea-3.0.0.tar.gz
+cd kea-3.0.0
+
+	3.	Configure + build
+
+./configure
+make -j$(nproc)
+make install DESTDIR=/tmp/kea-offline
+
+This installs all compiled files into:
+
+/tmp/kea-offline/usr/local/
+
+	4.	Create your offline tar.gz
+
+cd /tmp
+tar -czf kea-offline.tar.gz kea-offline
+
+Now you have:
+
+/tmp/kea-offline.tar.gz
+
+✔ contains binaries
+✔ contains libs
+✔ contains hooks
+✔ ready to install anywhere without internet
+
+⸻
+
+🔧 Install on another offline EC2 VM
+
+Copy the tarball to the server, then run:
+
+tar -xzf kea-offline.tar.gz -C /
+
+Because you used DESTDIR, the tarball expands exactly into the correct paths:
+
+/usr/local/sbin/kea-dhcp4
+/usr/local/lib/
+...
+
+No building, no dependencies, no internet.
+
+⸻
+
+✔ Why this is the best method
+	•	No need to rebuild on the EC2 VM
+	•	No need to install build tools there
+	•	Exactly matches your compiled Kea version
+	•	Fastest possible offline deployment
+
+⸻
+
+If you want, I can generate a Dockerfile to automate this entire tar.gz build.
