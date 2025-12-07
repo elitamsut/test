@@ -1,0 +1,190 @@
+###############################################
+# Provider
+###############################################
+provider "aws" {
+  region = "il-central-1"
+}
+
+###############################################
+# Windows Server 2025 AMI
+###############################################
+data "aws_ami" "windows_2025" {
+  owners      = ["801119661308"] # Microsoft
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["Windows_Server-2025-English-Full-Base-*"]
+  }
+}
+
+###############################################
+# Existing VPC + Subnet (private)
+###############################################
+data "aws_vpc" "existing" {
+  id = "vpc-0452302a0853a2291"
+}
+
+data "aws_subnet" "subnet_37" {
+  id = "subnet-03c0adfe72e57e408"
+}
+
+###############################################
+# Security Group — Internal + RDP
+###############################################
+resource "aws_security_group" "internal_rdp" {
+  name        = "internal-rdp-dhcp"
+  description = "Allow internal traffic + RDP"
+  vpc_id      = data.aws_vpc.existing.id
+
+  # Internal ALL traffic inside VPC
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [data.aws_vpc.existing.cidr_block]
+  }
+
+  # RDP from inside VPC
+  ingress {
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.existing.cidr_block]
+  }
+
+  # Allow all outbound inside the VPC
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [data.aws_vpc.existing.cidr_block]
+  }
+
+  tags = {
+    Name = "internal-rdp-dhcp"
+  }
+}
+
+###############################################
+# IAM Role + SSM Instance Profile
+###############################################
+resource "aws_iam_role" "ssm_role" {
+  name = "windows-ssm-role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  role       = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ssm_profile" {
+  name = "windows-ssm-profile"
+  role = aws_iam_role.ssm_role.name
+}
+
+###############################################
+# Key Pair (required for Windows password retrieval)
+###############################################
+resource "aws_key_pair" "windows_key" {
+  key_name   = "windows-dhcp-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+###############################################
+# PowerShell User Data — 50/50 Scope Split
+###############################################
+locals {
+  dhcp1_user_data = <<-EOF
+    <powershell>
+    Install-WindowsFeature -Name DHCP -IncludeManagementTools
+
+    Add-DhcpServerv4Scope -Name "SPLIT-50-A" `
+        -StartRange 10.56.37.4 `
+        -EndRange   10.56.37.129 `
+        -SubnetMask 255.255.255.0
+
+    Set-DhcpServerv4OptionValue -ScopeId 10.56.37.0 -Router 10.56.37.1
+    Set-DhcpServerv4OptionValue -ScopeId 10.56.37.0 -DnsServer 8.8.8.8,1.1.1.1
+
+    Restart-Service dhcpserver
+    </powershell>
+  EOF
+
+  dhcp2_user_data = <<-EOF
+    <powershell>
+    Install-WindowsFeature -Name DHCP -IncludeManagementTools
+
+    Add-DhcpServerv4Scope -Name "SPLIT-50-B" `
+        -StartRange 10.56.37.130 `
+        -EndRange   10.56.37.254 `
+        -SubnetMask 255.255.255.0
+
+    Set-DhcpServerv4OptionValue -ScopeId 10.56.37.0 -Router 10.56.37.1
+    Set-DhcpServerv4OptionValue -ScopeId 10.56.37.0 -DnsServer 8.8.8.8,1.1.1.1
+
+    Restart-Service dhcpserver
+    </powershell>
+  EOF
+}
+
+###############################################
+# Two EC2 Instances — 50/50 DHCP Split
+###############################################
+resource "aws_instance" "windows_dhcp" {
+  count         = 2
+  ami           = data.aws_ami.windows_2025.id
+  instance_type = "m5.large"
+
+  subnet_id              = data.aws_subnet.subnet_37.id
+  vpc_security_group_ids = [aws_security_group.internal_rdp.id]
+
+  associate_public_ip_address = false
+  iam_instance_profile        = aws_iam_instance_profile.ssm_profile.name
+  key_name                    = aws_key_pair.windows_key.key_name
+
+  root_block_device {
+    volume_size = 50
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
+
+  # Split DHCP scope
+  user_data = count.index == 0 ? local.dhcp1_user_data : local.dhcp2_user_data
+
+  tags = {
+    Name = count.index == 0 ? "win-dhcp-37-split-A" : "win-dhcp-37-split-B"
+    Role = "windows-dhcp-50-50"
+  }
+}
+
+###############################################
+# Outputs
+###############################################
+output "dhcp_private_ips" {
+  value = aws_instance.windows_dhcp[*].private_ip
+}
+
+output "dhcp_instance_ids" {
+  value = aws_instance.windows_dhcp[*].id
+}
