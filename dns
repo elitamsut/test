@@ -1,2 +1,0 @@
-Set-DhcpServerv4OptionValue -ScopeId 10.56.37.0 -OptionId 3 -Value "10.56.37.1"   
-Set-DhcpServerv4OptionValue -ScopeId 10.56.37.0 -OptionId 6 -Value "10.56.36.2"
