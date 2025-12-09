@@ -1,0 +1,233 @@
+###############################################
+# S3 Bucket for Terraform Remote State
+###############################################
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "windows-dhcp-terraform-state-il1"  # must be globally unique
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  }
+
+  tags = {
+    Name        = "Windows DHCP Terraform State"
+    Environment = "Prod"
+  }
+}
+
+terraform {
+  backend "local" {
+    path = "./terraform.tfstate"
+  }
+}
+
+###############################################
+# Provider
+###############################################
+provider "aws" {
+  region = "il-central-1"
+}
+
+###############################################
+# Existing VPC + Subnet (private)
+###############################################
+data "aws_vpc" "existing" {
+  id = "vpc-0452302a0853a2291"
+}
+
+data "aws_subnet" "subnet_37" {
+  id = "subnet-03c0adfe72e57e408"
+}
+
+data "aws_subnet" "subnet_38" {
+  id = "subnet-0a1b2c3d4e5f67890"
+}
+
+data "aws_subnet" "subnet_39" {
+  id = "subnet-0b1c2d3e4f5a67891"
+}
+
+###############################################
+# Security Group — Internal + RDP + SSM
+###############################################
+resource "aws_security_group" "internal_rdp" { 
+  name        = "internal-rdp-dhcp"
+  description = "Allow internal traffic + RDP + SSM + DHCP"
+  vpc_id      = data.aws_vpc.existing.id
+
+  # Internal ALL traffic inside VPC
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [data.aws_vpc.existing.cidr_block]
+  }
+
+  # RDP from 10.0.0.0/8
+  ingress {
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+  # DHCP from relay agents (UDP 67/68)
+  ingress {
+    from_port   = 67
+    to_port     = 68
+    protocol    = "udp"
+    cidr_blocks = ["10.0.0.0/8"] # adjust to your relay agent CIDR(s)
+    description = "Allow DHCP requests from relay agents"
+  }
+
+  # Outbound to allow SSM Agent to communicate (HTTPS)
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/8"]
+    description = "Allow SSM Agent outbound HTTPS"
+  }
+
+  # Optional: keep all other outbound traffic inside VPC
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [data.aws_vpc.existing.cidr_block]
+    description = "Allow all internal traffic"
+  }
+
+  tags = {
+    Name = "internal-rdp-dhcp"
+  }
+}
+
+
+###############################################
+# IAM Role + SSM Instance Profile
+###############################################
+resource "aws_iam_role" "ssm_role" {
+  name = "windows-ssm-role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  role       = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ssm_profile" {
+  name = "windows-ssm-profile"
+  role = aws_iam_role.ssm_role.name
+}
+
+###############################################
+# Key Pair (required for Windows password retrieval)
+###############################################
+resource "aws_key_pair" "windows_key" {
+  key_name   = "windows-dhcp-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+###############################################
+# PowerShell User Data — 50/50 Scope Split
+###############################################
+locals {
+  # User Data for DHCP Server 1
+  dhcp1_user_data = <<-EOF
+    <powershell>
+    # Install DHCP feature
+    Install-WindowsFeature DHCP -IncludeManagementTools
+
+    # Required reboot before DHCP initialization
+    Restart-Computer -Force
+
+    # Get metadata token
+    $aws_metadata_token = Invoke-RestMethod -Method Put -Uri "http://169.254.169.254/latest/api/token" -Headers @{ "X-aws-ec2-metadata-token-ttl-seconds" = "21600" }
+
+    # Get local IP address
+    $ec2_ip_address = Invoke-RestMethod -Uri "http://169.254.169.254/latest/meta-data/local-ipv4" -Headers @{ "X-aws-ec2-metadata-token" = $aws_metadata_token }
+
+    Write-Host "EC2 local IP address: $ec2_ip_address"
+
+    Restart-Service dhcpserver
+    </powershell>
+  EOF
+
+  # User Data for DHCP Server 2
+  dhcp2_user_data = <<-EOF
+    <powershell>
+    Install-WindowsFeature DHCP -IncludeManagementTools
+
+    # Required reboot before DHCP initialization
+    Restart-Computer -Force
+
+    $aws_metadata_token = Invoke-RestMethod -Method Put -Uri "http://169.254.169.254/latest/api/token" -Headers @{ "X-aws-ec2-metadata-token-ttl-seconds" = "21600" }
+    $ec2_ip_address = Invoke-RestMethod -Uri "http://169.254.169.254/latest/meta-data/local-ipv4" -Headers @{ "X-aws-ec2-metadata-token" = $aws_metadata_token }
+
+    Write-Host "EC2 local IP: $ec2_ip_address"
+
+    Restart-Service dhcpserver
+    </powershell>
+  EOF
+}
+
+###############################################
+# Two EC2 Instances — 50/50 DHCP Split
+###############################################
+resource "aws_instance" "windows_dhcp" {
+  count         = 2
+  ami           = "ami-005bc2bca6a48d63c"
+  instance_type = "m5.large"
+
+  subnet_id              = data.aws_subnet.subnet_37.id
+  vpc_security_group_ids = [aws_security_group.internal_rdp.id]
+
+  associate_public_ip_address = false
+  iam_instance_profile        = aws_iam_instance_profile.ssm_profile.name
+  key_name                    = aws_key_pair.windows_key.key_name
+
+  root_block_device {
+    volume_size = 100
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
+
+  user_data = count.index == 0 ? local.dhcp1_user_data : local.dhcp2_user_data
+
+  tags = {
+    Name = count.index == 0 ? "win-dhcp-37-split-A" : "win-dhcp-37-split-B"
+    Role = "windows-dhcp-50-50"
+  }
+}
+
+###############################################
+# Outputs
+###############################################
+output "dhcp_private_ips" {
+  value = aws_instance.windows_dhcp[*].private_ip
+}
+
+output "dhcp_instance_ids" {
+  value = aws_instance.windows_dhcp[*].id
+}
